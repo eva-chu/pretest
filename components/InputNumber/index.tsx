@@ -9,7 +9,14 @@ interface IProps {
   value: number,
   onChange: (event: any) => void,
   onBlur: (event: any) => void,
-  disabled?: boolean
+  disabled?: boolean,
+  left: number
+}
+
+declare global {
+  interface Window {
+      timer: any;
+  }
 }
 
 export default function InputNumber({ 
@@ -20,15 +27,17 @@ export default function InputNumber({
   value,
   onChange,
   onBlur,
-  disabled
+  disabled,
+  left
 }: IProps) {
   const [ currValue, setCurrValue ] = useState<number>(0);
   const numberInput = useRef<HTMLInputElement | null>(null);
 
-  const minus = () => {
-    if (disabled || currValue === min) return;
-    const newValue = currValue - step;
-    setCurrValue(newValue);
+  const clearTimer = () => {
+    clearInterval(window.timer);
+  };
+
+  const triggerInputChange = (newValue: number) => {
     if (numberInput.current) {
       const target: HTMLInputElement = numberInput.current;
       Object?.getOwnPropertyDescriptor(
@@ -39,27 +48,73 @@ export default function InputNumber({
     }
   };
 
-  const plus = () => {
-    if (disabled || currValue === max) return;
-    const newValue = currValue + step;
-    setCurrValue(newValue);
+  const click = (type: 'minus' | 'plus') => {
+    let newValue = currValue;
+    if (type === 'minus') {
+      if (disabled || currValue === min) return;
+      newValue = currValue - step;
+    } else {
+      if (disabled || currValue === max || left === 0) return;
+      newValue = currValue + step;
+    }
+    setCurrValue(newValue);  
+    triggerInputChange(newValue);
+  };
+
+  const mouseDown = (type: 'minus' | 'plus') => {
+    window.timer = setInterval(() => {  
+      if (type === 'minus') {
+        if (disabled || currValue === min) return;
+        setCurrValue(val=>{
+          triggerInputChange(val - step);
+          return val - step;
+        });
+      } else {
+        if (disabled || currValue === max || left === 0) return;
+        setCurrValue(val=>{
+          triggerInputChange(val + step);
+          return val + step;
+        });
+      }
+    }, 500);
+  };
+
+  const mouseUp = () => {
+    clearTimer();
+  };
+
+  const blur = () => {
     if (numberInput.current) {
       const target: HTMLInputElement = numberInput.current;
-      Object?.getOwnPropertyDescriptor(
-        window.HTMLInputElement.prototype,
-        'value'
-      )?.set?.call(target, newValue);
-      target.dispatchEvent(new Event('change', { bubbles: true }));
-    }  
+      target.focus()
+      target.blur()
+    } 
   };
 
   useEffect(() => {
+    if (currValue === min || currValue === max) {
+      clearTimer();
+    }
+    // triggerInputDebounce();
+  }, [currValue]);
+
+  useEffect(() => {
     setCurrValue(value);
+    return clearTimer();
   }, []);
 
   return (
     <div className="number-input">
-      <button onClick={minus} style={{opacity: disabled ? 0.3 : 1}} />
+      <button 
+        onClick={()=>click('minus')} 
+        onMouseDown={()=>mouseDown('minus')}
+        onMouseUp={mouseUp}
+        onBlur={blur}
+        style={{
+          opacity: disabled || currValue <= min  ? 0.3 : 1,
+          cursor: disabled || currValue <= min ? 'default' : 'pointer',
+        }} 
+      />
       <input    
         ref={numberInput}    
         min={min}
@@ -67,13 +122,23 @@ export default function InputNumber({
         step={step}
         name={name}
         value={currValue}
-        onChange={(e)=>{console.log(e.target);onChange(e)}}
-        onBlur={(e)=>onBlur(e)}
+        onChange={(e)=>{onChange(e);}}
+        onBlur={(e)=>{onBlur(e)}}
         disabled={disabled}
         type="number"
         style={{opacity: disabled ? 0.3 : 1}}
       />
-      <button onClick={plus} className="plus" style={{opacity: disabled ? 0.3 : 1}}></button>
+      <button 
+        onClick={()=>click('plus')} 
+        onMouseDown={()=>mouseDown('plus')}
+        onMouseUp={mouseUp}
+        onBlur={blur}
+        className="plus" 
+        style={{
+          opacity: disabled || currValue >= max || left <= 0 ? 0.3 : 1,
+          cursor: disabled || currValue >= max || left <= 0 ? 'default' : 'pointer',
+        }}
+      />
     </div>
   );
 }

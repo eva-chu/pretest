@@ -9,8 +9,8 @@ const config: Config = {
   theme: {
     extend: {
       height: {
-        '500': '500px',
-        '340': '340px'
+        '550': '550px',
+        '400': '400px'
       }
     },
   },
