@@ -76,7 +76,7 @@ export default function InputNumber({
           return val + step;
         });
       }
-    }, 500);
+    }, 200);
   };
 
   const mouseUp = () => {

@@ -74,7 +74,8 @@ function RoomAllocation({ guest, rooms, onChange }: IProps) {
       child: number,
       cache = new Map()
     ) => {
-      if (cache.has(roomStatusList)) return cache.get(roomStatusList);
+      const key = roomStatusList.map(roomStatus => (roomStatus.adult + ',' + roomStatus.child)).join(',');
+      if (cache.has(key)) return;
       // finish allocation and calculate total price
       if (adult === 0 && child === 0) {
         let isValid = true;
@@ -91,18 +92,14 @@ function RoomAllocation({ guest, rooms, onChange }: IProps) {
             child: room.child,
             price: room.price
           }));
+          // console.log('totalPrice', totalPrice);
+          // console.log('newRoomStatus', newRoomStatus);
           if (totalPrice < minPrice) {
             minPrice = totalPrice;
             defaultRooms = newRoomStatus;
           }
-          // console.log(totalPrice);
-          // console.log(newRoomStatus);
-          // console.log('=================');
-          return cache.set(
-            roomStatusList.map(roomStatus => (roomStatus.adult + ',' + roomStatus.child)).join(','), 
-            newRoomStatus
-          );
         }
+        return;
       }
       for (let room of roomStatusList) {
         // allocate adults
@@ -146,6 +143,7 @@ function RoomAllocation({ guest, rooms, onChange }: IProps) {
           child++;
         }
       }
+      cache.set(key, true);
     };
     backtracking(roomStatusList, guest.adult, guest.child);
     // console.log(defaultRooms);
